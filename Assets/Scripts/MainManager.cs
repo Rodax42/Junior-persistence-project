@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.IO;
+using TMPro;
 
 public class MainManager : MonoBehaviour
 {
@@ -17,11 +19,28 @@ public class MainManager : MonoBehaviour
     private int m_Points;
     
     private bool m_GameOver = false;
-
+    public static string userName = "";
+    public int bestScore;
+    public GameObject bestScoreObject;
+    public TMP_InputField inputNameTMP;
     
     // Start is called before the first frame update
+    private void Awake() {
+        string path = Application.persistentDataPath+"/HighScore.json";
+        if(File.Exists(path)){
+            string json = File.ReadAllText(path);
+            HighScore leader = JsonUtility.FromJson<HighScore>(json);
+            bestScore = leader.score;
+            bestScoreObject.GetComponent<Text>().text = "Best Score by "+leader.name+": "+leader.score;
+            bestScoreObject.SetActive(true);
+        }
+    }
+
     void Start()
     {
+        if(MainManager.userName != ""){
+            inputNameTMP.text = MainManager.userName;
+        }
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -53,13 +72,6 @@ public class MainManager : MonoBehaviour
                 Ball.AddForce(forceDir * 2.0f, ForceMode.VelocityChange);
             }
         }
-        else if (m_GameOver)
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-            }
-        }
     }
 
     void AddPoint(int point)
@@ -72,5 +84,25 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+    }
+
+    public void EndGame(){
+        if(inputNameTMP.text.Length == 0) return;
+        MainManager.userName = inputNameTMP.text;
+        if(m_Points > bestScore){
+            HighScore record = new HighScore();
+            record.name = MainManager.userName;
+            record.score = m_Points;
+            string json = JsonUtility.ToJson(record);
+            File.WriteAllText(Application.persistentDataPath+"/HighScore.json",json);
+            
+        }
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    [SerializeField]
+    public class HighScore{
+        public string name;
+        public int score;
     }
 }
